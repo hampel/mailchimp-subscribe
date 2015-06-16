@@ -1,0 +1,50 @@
+{
+	"name" : "hampel/mailchimp-subscribe",
+	"description" : "Wrapper for the list subscription methods of the MailChimp API v3 using Guzzle",
+	"homepage" : "https://bitbucket.org/hampel/mailchimp-subscribe",
+	"authors" : [{
+		"name": "Simon Hampel",
+		"email": "simon@hampelgroup.com",
+		"homepage": "http://hampelgroup.com/",
+		"role": "Developer"
+	}],
+	"support" : {
+		"email": "support@hampelgroup.com",
+		"issues": "https://bitbucket.org/hampel/mailchimp-subscribe/issues",
+		"source": "https://bitbucket.org/hampel/mailchimp-subscribe/src"
+	},
+	"keywords" : [
+		"guzzle",
+		"mailchimp",
+		"subscribe",
+		"API"
+	],
+	"license" : [
+		"MIT"
+	],
+	"require" : {
+		"php" : ">=5.4.0",
+		"guzzlehttp/guzzle": "~5.0"
+	},
+	"require-dev" : {
+		"phpunit/phpunit": "~4.0",
+		"mockery/mockery": "^0.9"
+	},
+	"autoload" : {
+		"psr-4" : {
+			"MailChimp\\" : "src/"
+		}
+	},
+	"autoload-dev" : {
+		"psr-4" : {
+			"MailChimp\\" : "tests/"
+		}
+	},
+	"extra": {
+        "branch-alias": {
+            "dev-master": "1.0.x-dev"
+        }
+    }
+}
+
+
