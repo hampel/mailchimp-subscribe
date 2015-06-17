@@ -1,5 +1,7 @@
 <?php  namespace MailChimp; 
 
+use MailChimp\Exception\MailChimpRequestException;
+
 class MailingList
 {
 	/** @var  MailChimp our MailChimp interface */

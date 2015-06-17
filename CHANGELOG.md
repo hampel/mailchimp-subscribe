@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+0.2.1 (2015-06-17)
+------------------
+
+* bug fix - missing use clause for exception
+
 0.2.0 (2015-06-17)
 ------------------
 
