@@ -10,7 +10,7 @@ use MailChimp\Exception\MailChimpRequestException;
 /**
  * The main service interface using Guzzle
  */
-class Subscriber
+class MailChimp
 {
 	/** @var string base url for API calls */
 	protected static $base_uri = 'https://<dc>.api.mailchimp.com/3.0/';
@@ -39,7 +39,7 @@ class Subscriber
 	 *
 	 * @param string $api_key API Key
 	 *
-	 * @return Subscriber a fully hydrated MailChimp Service, ready to run
+	 * @return MailChimp a fully hydrated MailChimp Service, ready to run
 	 */
 	public static function make($api_key)
 	{
@@ -76,66 +76,6 @@ class Subscriber
 		return $this->client;
 	}
 
-	public function getMember($listid, $email)
-	{
-		$action = "lists/{$listid}/members/" . md5($email);
-
-		try
-		{
-			return $this->get($action);
-		}
-		catch (MailChimpRequestException $e)
-		{
-			if ($e->getResponse()->getStatusCode() == '404')
-			{
-				return false;
-			}
-			else throw $e;
-		}
-	}
-
-	public function getMemberStatus($listid, $email)
-	{
-		$member = $this->getMember($listid, $email);
-		if ($member) return $member['status'];
-		else return false;
-	}
-
-	public function isMember($listid, $email)
-	{
-		return $this->getMemberStatus($listid, $email) !== false;
-	}
-
-	public function subscribe($listid, $email, $confirm = false, $merge_fields = array())
-	{
-		$data = [
-			'email_address' => $email,
-			'status' => ($confirm ? 'pending' : 'subscribed'),
-		];
-		if (!empty($merge_fields)) $data['merge_fields'] = $merge_fields;
-
-		$action = "lists/{$listid}/members/";
-
-		return $this->post($action, ['json' => $data]);
-	}
-
-	public function unsubscribe($listid, $email)
-	{
-		return $this->update($listid, $email, ['status' => 'unsubscribed']);
-	}
-
-	public function clean($listid, $email)
-	{
-		return $this->update($listid, $email, ['status' => 'cleaned']);
-	}
-
-	public function update($listid, $email, $data)
-	{
-		$action = "lists/{$listid}/members/" . md5($email);
-
-		return $this->patch($action, ['json' => $data]);
-	}
-
 	public function get($action)
 	{
 		$this->last_action = "GET {$action}";
@@ -163,7 +103,7 @@ class Subscriber
 		return $this->send($request);
 	}
 
-	public function send(Request $request, array $options = [])
+	protected function send(Request $request, array $options = [])
 	{
 		try
 		{
