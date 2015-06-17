@@ -1,6 +1,6 @@
 {
 	"name" : "hampel/mailchimp-subscribe",
-	"description" : "Wrapper for the list subscription methods of the MailChimp API v3 using Guzzle",
+	"description" : "Wrapper for the list subscription and management methods of the MailChimp API v3 using Guzzle",
 	"homepage" : "https://bitbucket.org/hampel/mailchimp-subscribe",
 	"authors" : [{
 		"name": "Simon Hampel",
