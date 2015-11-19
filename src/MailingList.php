@@ -51,7 +51,7 @@ class MailingList
 		return $this->getMemberStatus($email) !== false;
 	}
 
-	public function subscribe($email, $confirm = false, $merge_fields = array())
+	public function subscribe($email, $confirm = false, $merge_fields = [])
 	{
 		$data = [
 			'email_address' => $email,
@@ -61,7 +61,7 @@ class MailingList
 
 		$action = "lists/{$this->list_id}/members/";
 
-		return $this->mailchimp->post($action, ['json' => $data]);
+		return $this->mailchimp->post($action, $data);
 	}
 
 	public function unsubscribe($email)
@@ -78,7 +78,7 @@ class MailingList
 	{
 		$action = "lists/{$this->list_id}/members/" . md5($email);
 
-		return $this->mailchimp->patch($action, ['json' => $data]);
+		return $this->mailchimp->patch($action, $data);
 	}
 
 	/**

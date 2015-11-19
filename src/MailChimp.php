@@ -1,9 +1,13 @@
 <?php namespace MailChimp;
 
+use Hampel\Json\Json;
 use GuzzleHttp\Client;
-use GuzzleHttp\Message\Request;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Response;
+use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\ParseException;
 use GuzzleHttp\Exception\RequestException;
+use Hampel\Json\JsonException;
 use MailChimp\Exception\MailChimpParseException;
 use MailChimp\Exception\MailChimpRequestException;
 
@@ -15,8 +19,14 @@ class MailChimp
 	/** @var string base url for API calls */
 	protected static $base_uri = 'https://<dc>.api.mailchimp.com/3.0/';
 
+	/** @var string api key for auth */
+	protected $apikey;
+
 	/** @var Client our Guzzle HTTP Client object */
 	protected $client;
+
+	/** @var Request Psr7 Request object representing the last request made */
+	protected $last_request;
 
 	/** @var Response Guzzle Response object representing the last response from Guzzle call to MailChimp API */
 	protected $last_response;
@@ -29,9 +39,10 @@ class MailChimp
 	 *
 	 * @param Client $client	Guzzle HTTP client
 	 */
-	public function __construct(Client $client)
+	public function __construct(ClientInterface $client, $apikey)
 	{
 		$this->client = $client;
+		$this->apikey = $apikey;
 	}
 
 	/**
@@ -41,17 +52,16 @@ class MailChimp
 	 *
 	 * @return MailChimp a fully hydrated MailChimp Service, ready to run
 	 */
-	public static function make($api_key)
+	public static function make($apikey)
 	{
-		return new self(new Client(self::getConfig($api_key)));
+		return new self(new Client(self::getConfig($apikey)), $apikey);
 	}
 
-	public static function extractDc($api_key)
+	public static function getConfig($apikey)
 	{
-		if (empty($api_key)) return null;
+		$dc = self::extractDc($apikey);
 
-		$parts = explode('-', $api_key);
-		return array_pop($parts); // last part of the key is the datacenter
+		return ['base_uri' => self::buildUri($dc)];
 	}
 
 	public static function buildUri($dc)
@@ -59,16 +69,12 @@ class MailChimp
 		return str_replace('<dc>', $dc, self::$base_uri);
 	}
 
-	public static function getConfig($api_key)
+	public static function extractDc($apikey)
 	{
-		$dc = self::extractDc($api_key);
+		if (empty($apikey)) return null;
 
-		return [
-			'base_url' => self::buildUri($dc),
-			'defaults' => [
-				'auth' => ['mailchimp-subscribe', $api_key]
-			],
-		];
+		$parts = explode('-', $apikey);
+		return array_pop($parts); // last part of the key is the datacenter
 	}
 
 	public function getClient()
@@ -80,31 +86,54 @@ class MailChimp
 	{
 		$this->last_action = "GET {$action}";
 
-		$request = $this->client->createRequest('GET', $action);
-
-		return $this->send($request);
+		return $this->send($action, 'GET');
 	}
 
 	public function post($action, array $data = [])
 	{
 		$this->last_action = "POST {$action}";
 
-		$request = $this->client->createRequest('POST', $action, $data);
-
-		return $this->send($request);
+		return $this->send($action, 'POST', $data);
 	}
 
 	public function patch($action, array $data = [])
 	{
 		$this->last_action = "PATCH {$action}";
 
-		$request = $this->client->createRequest('PATCH', $action, $data);
-
-		return $this->send($request);
+		return $this->send($action, 'PATCH', $data);
 	}
 
-	protected function send(Request $request, array $options = [])
+	public function send($action, $method = 'GET', $data = [], array $options = [])
 	{
+		if (empty($this->apikey))
+		{
+			throw new RuntimeException("API key not yet set");
+		}
+
+		if (!array_key_exists('auth', $options))
+		{
+			$options['auth'] = ['mailchimp-subscribe', $this->apikey];
+		}
+
+		$json = null;
+		if (!empty($data))
+		{
+			try
+			{
+				$json = Json::encode($data);
+			}
+			catch (JsonException $e)
+			{
+				throw new RuntimeException("Could not encode JSON payload: " . $e->getMessage(), $e->getCode(), $e);
+			}
+		}
+
+		$headers = [];
+
+		$request = new Request($method, $action, $headers, $json);
+
+		$this->last_request = $request;
+
 		try
 		{
 			$response = $this->client->send($request, $options);
@@ -116,14 +145,33 @@ class MailChimp
 
 		$this->last_response = $response;
 
-		try
+		$body = $response->getBody();
+
+		if ($body->getSize() > 0)
 		{
-			return $response->json();
+			try
+			{
+				return Json::decode($body->getContents(), Json::DECODE_ASSOC);
+			}
+			catch (ParseException $e)
+			{
+				throw new MailChimpParseException(
+					"MailChimp " . $e->getMessage() . " - last command [{$this->last_action}]",
+					$e->getCode(),
+					$e
+				);
+			}
 		}
-		catch (ParseException $e)
-		{
-			throw new MailChimpParseException("MailChimp " . $e->getMessage() . " - last command [{$this->last_action}]", $e->getCode(), $e);
-		}
+	}
+
+	/**
+	 * Return the request object from the last API call made
+	 *
+	 * @return Request Psr7 Request object
+	 */
+	public function getLastRequest()
+	{
+		return $this->last_request;
 	}
 
 	/**
@@ -152,10 +200,11 @@ class MailChimp
 
 	public function getLastQuery()
 	{
-		$last_response = $this->getLastResponse();
-		if (! is_null($last_response))
+		$last_request = $this->getLastRequest();
+		if (!is_null($last_request))
 		{
-			return $last_response->getEffectiveUrl();
+//			return strval(\GuzzleHttp\Psr7\Uri::resolve(\GuzzleHttp\Psr7\uri_for($this->client->getConfig('base_uri')), $last_request->getUri()));
+			return strval($last_request->getUri());
 		}
 	}
 

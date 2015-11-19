@@ -23,8 +23,9 @@
 		"MIT"
 	],
 	"require" : {
-		"php" : ">=5.4.0",
-		"guzzlehttp/guzzle": "~5.0"
+		"php" : ">=5.5.0",
+		"guzzlehttp/guzzle": "~6.0",
+		"hampel/json": "~2.0"
 	},
 	"require-dev" : {
 		"phpunit/phpunit": "~4.0",
