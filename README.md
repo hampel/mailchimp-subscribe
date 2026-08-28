@@ -1,6 +1,9 @@
 MailChimp Subscribe
 ===================
 
+> **This package is abandoned and no longer maintained.** Use
+> [drewm/mailchimp-api](https://packagist.org/packages/drewm/mailchimp-api) instead.
+
 A MailChimp API wrapper using Guzzle v6 which implements a simple list subscription interface using the MailChimp v3 
 API.
 
